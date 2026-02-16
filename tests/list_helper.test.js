@@ -143,3 +143,76 @@ describe('favorite blog',() => {
     assert.ok(['Blog A', 'Blog B'].includes(result.title))
   })
 })
+
+describe('most blogs', () => {
+  test('of empty list is null', () => {
+    const result = listHelper.mostBlogs([])
+    assert.strictEqual(result, null)
+  })
+
+  test('when list has only one blog, returns that author with 1 blog', () => {
+    const result = listHelper.mostBlogs(listWithOneBlog)
+    assert.deepStrictEqual(result, {
+      author: 'Edsger W. Dijkstra',
+      blogs: 1
+    })
+  })
+
+  test('of a bigger list returns the author with most blogs', () => {
+    const result = listHelper.mostBlogs(biggerList)
+    assert.deepStrictEqual(result, {
+      author: 'Robert C. Martin',
+      blogs: 3
+    })
+  })
+
+  test('when multiple authors have same number of blogs, return one of them', () => {
+    const blogWithMultipleAuthors = [
+      {
+        title: "Blog 1",
+        author: "Author A",
+        likes: 10
+      },
+      {
+        title: "Blog 2", 
+        author: "Author A",
+        likes: 5
+      },
+      {
+        title: "Blog 3",
+        author: "Author B",
+        likes: 8
+      },
+      {
+        title: "Blog 4",
+        author: "Author B", 
+        likes: 3
+      },
+      {
+        title: "Blog 5",
+        author: "Author C",
+        likes: 1
+      }
+    ]
+
+    const result = listHelper.mostBlogs(blogWithMultipleAuthors)
+    assert.strictEqual(result.blogs, 2)
+    assert.ok(['Author A', 'Author B'].includes(result.author))
+  })
+
+  test('correctly counts blogs for each author', () => {
+    const testBlogs = [
+      { author: "Author X", title: "Blog X1" },
+      { author: "Author X", title: "Blog X2" },
+      { author: "Author X", title: "Blog X3" },
+      { author: "Author Y", title: "Blog Y1" },
+      { author: "Author Y", title: "Blog Y2" },
+      { author: "Author Z", title: "Blog Z1" }
+    ]
+    const result = listHelper.mostBlogs(testBlogs)
+    assert.deepStrictEqual(result, {
+      author: "Author X",
+      blogs: 3
+    })
+  })
+})
