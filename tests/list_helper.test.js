@@ -1,4 +1,4 @@
-const {test, describe} = require('node:test')
+const {test, describe, after} = require('node:test')
 const assert = require('node:assert')
 const listHelper = require('../utils/list_helper')
 
@@ -65,8 +65,7 @@ const biggerList = [
   }
 ]
 
-
-test('dummy returns one', () =>{
+test('dummy returns one', () => {
     const blogs= []
     const result = listHelper.dummy(blogs)
     assert.strictEqual(result, 1)
@@ -216,3 +215,32 @@ describe('most blogs', () => {
     })
   })
 })
+
+describe('most likes', () => {
+  test('of empty list is null', () => {
+    const result = listHelper.mostLikes([])
+    assert.strictEqual(result, null)
+  })
+
+  test('when list has only one blog, return that author with the likes of that blog', () => {
+    const result = listHelper.mostLikes(listWithOneBlog)
+    assert.deepStrictEqual(result, {
+      author: 'Edsger W. Dijkstra',
+      likes: 5
+    })
+  })
+
+  test('of a bigger list returns the author with most total likes', () => {
+    const result = listHelper.mostLikes(biggerList)
+    assert.deepStrictEqual(result, {
+      author: 'Edsger W. Dijkstra',
+      likes: 17
+    })
+  })
+      
+})
+
+after(async () => {
+  await mongoose.connection.close()
+})
+  
