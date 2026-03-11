@@ -31,6 +31,7 @@ beforeEach(async () => {
     await Promise.all(promiseArray)
 })
 
+
 describe('Blog api tests', () => {
     test('blogs are returned as json', async () => {
         await api
@@ -41,6 +42,14 @@ describe('Blog api tests', () => {
     test('all blogs are returned', async () => {
         const response = await api.get('/api/blogs')
         assert.strictEqual(response.body.length,initialBlogs.length)
+    })
+    test('the unique identifier property is named "id"', async () => {
+        const response = await api.get('/api/blogs')
+
+        response.body.forEach(blog => {
+            assert(blog.id)
+            assert(!blog._id)
+        })
     })
 })
 
