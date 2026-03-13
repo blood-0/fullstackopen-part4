@@ -89,6 +89,36 @@ describe('Blog api tests', () => {
         const createdBlog = response.body.find(blog => blog.title === 'Blog without likes')
         assert.strictEqual(createdBlog.likes, 0)
     })
+    test('creating a blog without a title returns 400 Bad Request', async () => {
+        const blogWithoutTitle = {
+            author: 'Author without title',
+            url:'http://withouttitle.com',
+            likes: 5
+        }
+        await api
+            .post('/api/blogs')
+            .send(blogWithoutTitle)
+            .expect(400)
+        
+        const response = await api.get('/api/blogs')
+        assert.strictEqual(response.body.length, initialBlogs.length)
+    })
+
+    test('creating blog without url returns 400 Bad Request', async () => {
+        const blogWithoutUrl = {
+            title: 'Blog Without URL',
+            author: 'Author without url',
+            likes:5
+        }
+
+        await api
+            .post('/api/blogs')
+            .send(blogWithoutUrl)
+            .expect(400)
+        
+        const response = await api.get('/api/blogs')
+        assert.strictEqual(response.body.length, initialBlogs.length)
+    })
 })
 
 after( async () => {
