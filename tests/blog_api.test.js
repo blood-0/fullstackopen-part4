@@ -121,6 +121,48 @@ describe('Blog api tests', () => {
     })
 })
 
+describe('deleting a blog', () => {
+    test('succeds with status code 204 if id is valid', async () => {
+        //Obtener todos los blogs para tener un ip valido
+        const blogAtStart = await api.get('/api/blogs')
+        const blogToDelete = blogAtStart.body[0]
+
+        await api
+            .delete(`/api/blogs/${blogToDelete.id}`) // borramos el blog
+            .expect(204)
+        
+        //verificamos que el blog ya no existe
+        const blogsAtEnd = await api.get('/api/blogs') 
+        assert.strictEqual(blogsAtEnd.body.length, initialBlogs.length -1)
+
+        // verificar que el blog ya no esta en la lista
+        const titles = blogsAtEnd.body.map(blog => blog.title)
+        assert(!titles.includes(blogToDelete.title))
+
+    })
+    test('returns 404 if blog does not exist', async () => {
+        const nonExistingId = '5a422aa71b54a676234d17f8' // este id no existe en initialBlogs
+
+        await api
+            .delete(`/api/blogs/${nonExistingId}`)
+            .expect(404)
+        //verificamos que el blog no cambio
+        const blogsAtEnd = await api.get('/api/blogs')
+        assert.strictEqual(blogsAtEnd.body.length, initialBlogs.length)
+    })
+    test('returns 400 if id is malformated', async () => {
+        const malformatedId = '1234'
+
+        await api
+            .delete(`/api/blogs/${malformatedId}`)
+            .expect(400)
+        //verificamos que el numero de blogs sigue igual
+        const blogsAtEnd = await api.get('/api/blogs')
+        assert.strictEqual(blogsAtEnd.body.length, initialBlogs.length)
+    })    
+
+})
+
 after( async () => {
     await mongoose.connection.close()
 })
