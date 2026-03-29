@@ -159,7 +159,105 @@ describe('deleting a blog', () => {
         //verificamos que el numero de blogs sigue igual
         const blogsAtEnd = await api.get('/api/blogs')
         assert.strictEqual(blogsAtEnd.body.length, initialBlogs.length)
+    })
+    test('returns 400 if id is malformated', async () => {
+        const malformatedId = '1234'
+        
+        await api
+            .delete(`/api/blogs/${malformatedId}`)
+            .expect(400)
+        
+        const blogsAtEnd = await api.get('/api/blogs')
+        assert.strictEqual(blogsAtEnd.body.length, initialBlogs.length)
     })    
+
+})
+
+describe('updating a blog', () => {
+    test('succeeds with status code 200 and updates blog', async () => {
+        //primero obtenemos un blog existente
+        const blogAtStart = await api.get('/api/blogs')
+        const blogToUpdate = blogAtStart.body[0]
+        const originalLikes = blogToUpdate.likes
+        
+        //datos a actualizar(nuevos datos)
+        const updatedData = {
+            ...blogToUpdate,
+            likes: originalLikes + 10
+        }
+
+        //actualizamos el blog
+        const response = await api
+            .put(`/api/blogs/${blogToUpdate.id}`)
+            .send(updatedData)
+            .expect(200)
+            .expect('Content-Type', /application\/json/)
+
+        //verificamos que la respuesta tiene los nuevos likes
+        assert.strictEqual(response.body.likes, originalLikes + 10)
+        assert.strictEqual(response.body.id, blogToUpdate.id)
+        assert.strictEqual(response.body.title, blogToUpdate.title)
+    })
+    test('returns 404 if blog does not exist', async () => {
+        const nonExistingId = '5a422aa71b54a676234d17f8'
+        
+        const updatedData = {
+            title: 'Non existent',
+            author: 'Nobody',
+            url: 'http://nonexistingurl.com',
+            likes: 10
+        }
+
+        await api
+            .put(`/api/blogs/${nonExistingId}`)
+            .send(updatedData)
+            .expect(404)
+        
+        const blogAtEnd = await api.get('/api/blogs')
+        assert.strictEqual(blogAtEnd.body.length, initialBlogs.length)
+    })
+    test('returns 400 if id is malformated', async () => {
+        const malformatedId = '1234'
+
+        const updatedData = {
+            title: 'Test',
+            author: 'Author test',
+            url: 'htpp://test.com',
+            likes: 10
+        }
+        //actualizamos
+        await api
+            .put(`/api/blogs/${malformatedId}`)
+            .send(updatedData)
+            .expect(400)
+        
+        const blogsAtEnd = await api.get('/api/blogs')
+        assert.strictEqual(blogsAtEnd.body.length, initialBlogs.length)
+    })
+    test('can update only specific fields', async () => {
+        const blogAtStart = await api.get('/api/blogs')
+        const blogToUpdate = blogAtStart.body[0]
+
+        const partialUpdate = {
+            likes: 100
+        }
+
+        const response = await api
+            .put(`/api/blogs/${blogToUpdate.id}`)
+            .send(partialUpdate)
+            .expect(200)
+        
+        assert.strictEqual(response.body.likes, 100)
+        assert.strictEqual(response.body.title, blogToUpdate.title)
+        assert.strictEqual(response.body.author, blogToUpdate.author)
+        assert.strictEqual(response.body.url, blogToUpdate.url)
+
+        const blogsAtEnd = await api.get('/api/blogs')
+        const updatedBlog = blogsAtEnd.body.find(blog => blog.id === blogToUpdate.id)
+
+        assert.strictEqual(updatedBlog.likes, 100)
+        assert.strictEqual(updatedBlog.title, blogToUpdate.title)
+    })
 
 })
 
