@@ -23,6 +23,7 @@
   },
   "homepage": "https://github.com/blood-0/fullstackopen-part4#readme",
   "dependencies": {
+    "bcryptjs": "^3.0.3",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
