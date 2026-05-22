@@ -40,6 +40,14 @@ describe('when there is inittialy one user in db', () => {
 
     })
 
+    test('users includes their blogs', async () => {
+        const response = await api.get('/api/users')
+        const user = response.body[0]
+        //verificar que el usuario tiene la propiedad blogs
+        assert(user.blogs !== undefined)
+        assert(Array.isArray(user.blogs))
+    })
+
     test('GET api users returns users', async () => {
         const response = await api
             .get('/api/users')

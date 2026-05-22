@@ -239,8 +239,3 @@ describe('most likes', () => {
   })
       
 })
-
-after(async () => {
-  await mongoose.connection.close()
-})
-  

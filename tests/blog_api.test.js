@@ -3,7 +3,9 @@ const assert = require('node:assert')
 const supertest = require('supertest')
 const app = require ('../app')
 const Blog = require ('../models/blog')
+const User = require ('../models/user')
 const mongoose = require ('mongoose')
+const bcrypt = require('bcryptjs')
 
 const api = supertest(app)
 
@@ -21,14 +23,36 @@ const initialBlogs = [
       likes: 7
     }
    
-  ]
+]
+let testUserId = null // variable para guardar el ID del usuario de prueba
 
 beforeEach(async () => {
+    // limpiar las colecciones
     await Blog.deleteMany({})
+    await User.deleteMany({})
 
-    const blogObjects = initialBlogs.map(blog => new Blog(blog))
-    const promiseArray = blogObjects.map(blog => blog.save())
-    await Promise.all(promiseArray)
+    //creamos un usuario de prueba
+
+    const passwordHash = await bcrypt.hash('password123', 10)
+    const testUser = new User ({
+        username: 'testuser',
+        name: 'Test User',
+        passwordHash
+    })
+    const savedUser = await testUser.save()
+    testUserId = savedUser.id
+
+    //Crear blogs asociados al usuario
+    const blogsObjects = initialBlogs.map(blog => new Blog({
+        ...blog,
+        user: testUserId
+    }))
+    const savedBlogs = await Promise.all(blogsObjects.map(blog => blog.save()))
+
+    // Asociar los blogs al usuario
+    const blogIds = savedBlogs.map(blog => blog.id)
+    testUser.blogs = blogIds
+    await testUser.save()
 })
 
 
@@ -42,6 +66,17 @@ describe('Blog api tests', () => {
     test('all blogs are returned', async () => {
         const response = await api.get('/api/blogs')
         assert.strictEqual(response.body.length,initialBlogs.length)
+    })
+
+    test('blogs have user information populated', async () => {
+        const response = await api.get('/api/blogs')
+        const firstBlog = response.body[0]
+
+        // verificamos que el blog tiene la info de usuario
+        assert(firstBlog.user)
+        assert(firstBlog.user.id)
+        assert(firstBlog.user.username)
+        assert.strictEqual(firstBlog.user.username,'testuser')
     })
     test('the unique identifier property is named "id"', async () => {
         const response = await api.get('/api/blogs')
