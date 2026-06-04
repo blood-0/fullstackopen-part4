@@ -24,6 +24,7 @@ const initialBlogs = [
     }
    
 ]
+let token = null
 let testUserId = null // variable para guardar el ID del usuario de prueba
 
 beforeEach(async () => {
@@ -42,6 +43,15 @@ beforeEach(async () => {
     const savedUser = await testUser.save()
     testUserId = savedUser.id
 
+    //hacer login para obtener token
+    const loginResponse = await api
+        .post('/api/login')
+        .send({
+            username: 'testuser',
+            password: 'password123'
+        })
+    token = loginResponse.body.token
+
     //Crear blogs asociados al usuario
     const blogsObjects = initialBlogs.map(blog => new Blog({
         ...blog,
@@ -56,7 +66,7 @@ beforeEach(async () => {
 })
 
 
-describe('Blog api tests', () => {
+describe('Blog api tests with authenticatin', () => {
     test('blogs are returned as json', async () => {
         await api
             .get('/api/blogs')
@@ -78,6 +88,39 @@ describe('Blog api tests', () => {
         assert(firstBlog.user.username)
         assert.strictEqual(firstBlog.user.username,'testuser')
     })
+    test('a valid blog can be added with valid token', async () => {
+        const newBlog = {
+            title: 'Test blog for POST',
+            author: 'Test Author',
+            url: 'http://testurl.com',
+            likes: '15',
+        }
+        await api
+            .post('/api/blogs')
+            .set('Authorization', `Bearer ${token}`)
+            .send(newBlog)
+            .expect(201)
+            .expect('Content-Type', /application\/json/)
+
+        const response = await api.get('/api/blogs')
+        assert.strictEqual(response.body.length, initialBlogs.length + 1)
+        const titles = response.body.map(blog => blog.title)
+        assert(titles.includes('Test blog for POST'))
+    })
+    test('creating a blog without token returns 401', async () => {
+        const newBlog = {
+            title: 'Blog without token',
+            author: 'No Token Author',
+            url: 'http://notoken.com',
+            likes: '5'
+        }
+
+        await api
+            .post('/api/blogs')
+            .send(newBlog)
+            .expect(401)
+    })   
+
     test('the unique identifier property is named "id"', async () => {
         const response = await api.get('/api/blogs')
 
@@ -95,6 +138,7 @@ describe('Blog api tests', () => {
         }
         await api
             .post('/api/blogs')
+            .set('Authorization', `Bearer ${token}`)
             .send(newBlog)
             .expect(201)
             .expect('Content-Type',/application\/json/)
@@ -114,6 +158,7 @@ describe('Blog api tests', () => {
         }
         const postResponse = await api
             .post('/api/blogs')
+            .set('Authorization', `Bearer ${token}`)
             .send(newBlogWithoutLikes)
             .expect(201)
             .expect('Content-Type', /application\/json/)

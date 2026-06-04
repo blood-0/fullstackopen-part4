@@ -1,7 +1,17 @@
 const blogsRouter = require ('express').Router()
 const Blog = require('../models/blog')
 const User = require('../models/user')
+const jwt = require('jsonwebtoken')
+const config = require('../utils/config')
 
+//middleware para extraer token
+const getTokenFrom = (request) => {
+    const authorization = request.get('authorization')
+    if (authorization && authorization.startsWith('Bearer ')){
+        return authorization.replace('Bearer ', '')
+    }
+    return null
+}
 blogsRouter.get('/', async (request,response) => {
     const blogs = await Blog
         .find({})
@@ -15,29 +25,40 @@ blogsRouter.post('/', async (request, response) => {
     if(!body.title || !body.url){
         return response.status(400).json({error:'title or url missing'})
     }
-    // obtener el primer usuario de la base de datos
-    const firstUser = await User.findOne({})
-    console.error('first user found:', firstUser)
-    if (!firstUser) {
-        return response.status(400).json({error: 'no users found. Create a user first'})
+    //Obtener el token del header
+    const token = getTokenFrom(request)
+    if(!token) {
+        return response.status(401).json({error:'token missing or invalid'})
     }
+    //verificar el token
+    let decodedToken
+    try {
+        decodedToken = jwt.verify(token, config.SECRET)
+    }catch(error){
+        return response.status(401).json({error: 'token invalid'})
+    }
+    //obtener el usuario del token
+    const user = await User.findById(decodedToken.id)
 
+    if(!user){
+        return response.status(401).json({error: 'user not found'})
+    }
 
     const blog = new Blog({
         title: body.title,
         author: body.author,
         url: body.url,
         likes: body.likes || 0,
-        user: firstUser.id
+        user: user.id
     })
     const savedBlog = await blog.save()
 
     // agregar el blog al array de blogs del usuario
-    firstUser.blogs = firstUser.blogs.concat(savedBlog.id)
-    await firstUser.save()
+    user.blogs = user.blogs.concat(savedBlog.id)
+    await user.save()
 
     // populate para devolver el blog con la info del usuario
-    const populatedBlog = await Blog.findById(savedBlog).populate('user', {username: 1,name: 1})
+    const populatedBlog = await Blog.findById(savedBlog.id).populate('user', {username: 1,name: 1})
     response.status(201).json(populatedBlog)
 })
 
