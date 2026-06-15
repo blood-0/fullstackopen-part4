@@ -58,16 +58,34 @@ blogsRouter.delete('/:id', async (request, response) => {
     const id = request.params.id
     
     try{
-        const blog = await Blog.findByIdAndDelete(id)
-
-        if(blog){
-            response.status(204).end()
-        }else{
+        if (!request.token){
+            return response.status(401).json({error:'token missing'})
+        }
+        //verificar que el token es valido
+        let decodedToken
+        try{    
+            decodedToken = jwt.verify(request.token, config.SECRET)
+        } catch(error){
+            return response.status(401).json({error:'token invalid'})
+        }
+        //buscar el blog a eliminar 
+        const blog = await Blog.findById(id)
+        if (!blog){
             response.status(404).json({error:'blog not found'})
         }
-    }catch(error){
-        response.status(400).json({error: 'malformated id'})
-    }    
+        //verificar que el usuario que quiere eliminar es el creador
+        //blog.user es un objeto, lo convertimos en string
+        if (blog.user.toString() !== decodedToken.id.toString()){
+            return response.status(401).json({error:'only the creator can delete this blog'})
+        }
+
+        // eliminar el blog
+
+        await Blog.findByIdAndDelete(id)
+        response.status(204).end()
+    }catch (error){
+        response.status(400).json({error:'malformated id'})
+    }
 })
 
 blogsRouter.put('/:id', async (request, response) => {

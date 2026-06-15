@@ -201,7 +201,7 @@ describe('Blog api tests with authenticatin', () => {
     })
 })
 
-describe('deleting a blog', () => {
+describe('deleting a blog with authentication', () => {
     test('succeds with status code 204 if id is valid', async () => {
         //Obtener todos los blogs para tener un ip valido
         const blogAtStart = await api.get('/api/blogs')
@@ -209,6 +209,7 @@ describe('deleting a blog', () => {
 
         await api
             .delete(`/api/blogs/${blogToDelete.id}`) // borramos el blog
+            .set('Authorization', `Bearer ${token}`)
             .expect(204)
         
         //verificamos que el blog ya no existe
@@ -225,6 +226,7 @@ describe('deleting a blog', () => {
 
         await api
             .delete(`/api/blogs/${nonExistingId}`)
+            .set('Authorization', `Bearer ${token}`)
             .expect(404)
         //verificamos que el blog no cambio
         const blogsAtEnd = await api.get('/api/blogs')
@@ -235,6 +237,7 @@ describe('deleting a blog', () => {
 
         await api
             .delete(`/api/blogs/${malformatedId}`)
+            .set('Authorization', `Bearer ${token}`)
             .expect(400)
         //verificamos que el numero de blogs sigue igual
         const blogsAtEnd = await api.get('/api/blogs')
@@ -245,11 +248,42 @@ describe('deleting a blog', () => {
         
         await api
             .delete(`/api/blogs/${malformatedId}`)
+            .set('Authorization',`Bearer ${token}`)
             .expect(400)
         
         const blogsAtEnd = await api.get('/api/blogs')
         assert.strictEqual(blogsAtEnd.body.length, initialBlogs.length)
-    })    
+    }) 
+    test('succeeds with status 204 when deleted by creator', async () => {
+        //obtener blog actuales
+        const blogsAtStart = await api.get('/api/blogs')
+        const blogToDelete = blogsAtStart.body[0]
+
+        await api
+            .delete(`/api/blogs/${blogToDelete.id}`)
+            .set('Authorization', `Bearer ${token}`)
+            .expect(204)
+        //verificar que el blog ya no existe
+        const blogsAtEnd = await api.get('/api/blogs')
+        assert.strictEqual (blogsAtEnd.body.length, blogsAtStart.body.length -1)
+
+        const titles = blogsAtEnd.body.map(blog => blog.title)
+        assert(!titles.includes(blogToDelete.title)) 
+    
+    })
+    test('fails with 401 when invalid token provided', async () => {
+        const blogsAtStart = await api.get('/api/blogs')
+        const blogToDelete = blogsAtStart.body[0]
+
+        await api
+            .delete(`/api/blogs/${blogToDelete.id}`)
+            .set('Authorization', `Bearer tokeninvalido`)
+            .expect(401)
+        
+        const blogsAtEnd = await api.get('/api/blogs')
+        assert.strictEqual(blogsAtEnd.body.length, blogsAtStart.body.length)
+
+    })   
 
 })
 
