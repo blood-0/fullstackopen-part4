@@ -22,17 +22,9 @@ blogsRouter.post('/', async (request, response) => {
     if(!request.token) {
         return response.status(401).json({error:'token missing'})
     }
-    //verificar el token
-    let decodedToken
-    try {
-        decodedToken = jwt.verify(request.token, config.SECRET)
-    }catch(error){
-        return response.status(401).json({error: 'token invalid'})
-    }
-    //obtener el usuario del token
-    const user = await User.findById(decodedToken.id)
+    
 
-    if(!user){
+    if(!request.user){
         return response.status(401).json({error: 'user not found'})
     }
 
@@ -41,13 +33,13 @@ blogsRouter.post('/', async (request, response) => {
         author: body.author,
         url: body.url,
         likes: body.likes || 0,
-        user: user.id
+        user: request.user.id
     })
     const savedBlog = await blog.save()
 
     // agregar el blog al array de blogs del usuario
-    user.blogs = user.blogs.concat(savedBlog.id)
-    await user.save()
+    request.user.blogs = request.user.blogs.concat(savedBlog.id)
+    await request.user.save()
 
     // populate para devolver el blog con la info del usuario
     const populatedBlog = await Blog.findById(savedBlog.id).populate('user', {username: 1,name: 1})
@@ -73,14 +65,22 @@ blogsRouter.delete('/:id', async (request, response) => {
         if (!blog){
             response.status(404).json({error:'blog not found'})
         }
+        if (!request.user){
+            return response.status(401).json({error:'user not found'})
+        }
         //verificar que el usuario que quiere eliminar es el creador
         //blog.user es un objeto, lo convertimos en string
         if (blog.user.toString() !== decodedToken.id.toString()){
             return response.status(401).json({error:'only the creator can delete this blog'})
         }
 
+        //eliminar el blog del array de blogs del usuario
+        request.user.blogs = request.user.blogs.filter(
+            blogId => blogId.toString() !==id
+        )
+        await request.user.save()
+        
         // eliminar el blog
-
         await Blog.findByIdAndDelete(id)
         response.status(204).end()
     }catch (error){
