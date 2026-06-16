@@ -107,6 +107,23 @@ describe('Blog api tests with authenticatin', () => {
         const titles = response.body.map(blog => blog.title)
         assert(titles.includes('Test blog for POST'))
     })
+    test('creating a blog without token fails with 401 Unauthorized', async () => {
+        const newBlog = {
+            title: 'Blog without token',
+            author: 'No Token Author',
+            url: 'http://notoken.com',
+            likes: 5
+        }
+        await api
+            .post('/api/blogs')
+            .send(newBlog)
+            .expect(401)
+            .expect('Content-Type', /application\/json/)
+
+        //verificamos que no se creo ningun blog
+        const response = await api.get('/api/blogs')
+        assert.strictEqual(response.body.length, initialBlogs.length)
+    })
     test('creating a blog without token returns 401', async () => {
         const newBlog = {
             title: 'Blog without token',
